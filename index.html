@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rex AI Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 50%, #16213e 100%);
+            color: #00ffff;
+            overflow-x: hidden;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        /* Animated background particles */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: #00ffff;
+            border-radius: 50%;
+            animation: float 20s infinite linear;
+            opacity: 0.7;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(100vh) rotate(0deg);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        /* Glowing grid lines */
+        .grid-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(0, 255, 255, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 255, 0.1) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            z-index: 1;
+            animation: gridPulse 4s ease-in-out infinite alternate;
+        }
+
+        @keyframes gridPulse {
+            0% { opacity: 0.3; }
+            100% { opacity: 0.1; }
+        }
+
+        /* Main container */
+        .container {
+            position: relative;
+            z-index: 10;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            animation: slideDown 1s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .logo {
+            font-size: 3.5rem;
+            font-weight: bold;
+            background: linear-gradient(45deg, #00ffff, #ff00ff, #00ff00);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradientShift 3s ease-in-out infinite;
+            text-shadow: 0 0 30px rgba(0, 255, 255, 0.5);
+            margin-bottom: 10px;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+        }
+
+        /* Chat area */
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: rgba(0, 0, 0, 0.7);
+            border: 2px solid #00ffff;
+            border-radius: 20px;
+            box-shadow: 
+                0 0 50px rgba(0, 255, 255, 0.3),
+                inset 0 0 50px rgba(0, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            animation: slideUp 1s ease-out 0.3s both;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .chat-output {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            min-height: 400px;
+            max-height: 500px;
+            border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 15px;
+            border-radius: 10px;
+            animation: messageSlide 0.5s ease-out;
+        }
+
+        @keyframes messageSlide {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .user-message {
+            background: rgba(0, 255, 255, 0.1);
+            border-left: 4px solid #00ffff;
+            margin-left: 20px;
+        }
+
+        .bot-message {
+            background: rgba(255, 0, 255, 0.1);
+            border-left: 4px solid #ff00ff;
+            margin-right: 20px;
+        }
+
+        .typing-indicator {
+            display: none;
+            padding: 15px;
+            color: #00ffff;
+            font-style: italic;
+        }
+
+        .typing-dots {
+            display: inline-block;
+            animation: typing 1.5s infinite;
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% { opacity: 0.3; }
+            30% { opacity: 1; }
+        }
+
+        /* Input area */
+        .input-area {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .input-field {
+            flex: 1;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #00ffff;
+            border-radius: 10px;
+            color: #00ffff;
+            font-size: 16px;
+            font-family: 'Courier New', monospace;
+            transition: all 0.3s ease;
+        }
+
+        .input-field:focus {
+            outline: none;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+            border-color: #ff00ff;
+        }
+
+        .language-select {
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #00ffff;
+            border-radius: 10px;
+            color: #00ffff;
+            font-family: 'Courier New', monospace;
+            cursor: pointer;
+        }
+
+        /* Buttons */
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            background: linear-gradient(45deg, #00ffff, #0099cc);
+            border: none;
+            border-radius: 25px;
+            color: #000;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 255, 255, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn.secondary {
+            background: linear-gradient(45deg, #ff00ff, #cc0099);
+        }
+
+        .btn.danger {
+            background: linear-gradient(45deg, #ff4444, #cc0000);
+            color: white;
+        }
+
+        .btn.success {
+            background: linear-gradient(45deg, #00ff00, #00cc00);
+        }
+
+        /* Control panel */
+        .control-panel {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        .control-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: 2px solid #00ffff;
+            background: rgba(0, 0, 0, 0.8);
+            color: #00ffff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            font-size: 18px;
+        }
+
+        .control-btn:hover {
+            background: rgba(0, 255, 255, 0.2);
+            transform: scale(1.1);
+        }
+
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #00ffff;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 600px;
+            max-height: 70vh;
+            overflow-y: auto;
+            box-shadow: 0 0 50px rgba(0, 255, 255, 0.5);
+        }
+
+        .modal h2 {
+            color: #00ffff;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 28px;
+            color: #ff00ff;
+            cursor: pointer;
+        }
+
+        .help-content {
+            line-height: 1.6;
+            color: #ccc;
+        }
+
+        .help-content strong {
+            color: #00ffff;
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .logo {
+                font-size: 2.5rem;
+            }
+            
+            .input-row {
+                flex-direction: column;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            .control-panel {
+                position: static;
+                flex-direction: row;
+                justify-content: center;
+                margin-top: 20px;
+            }
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(45deg, #00ffff, #ff00ff);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(45deg, #ff00ff, #00ffff);
+        }
+    </style>
+</head>
+<body>
+    <!-- Background animations -->
+    <div class="bg-animation" id="bgAnimation"></div>
+    <div class="grid-overlay"></div>
+
+    <!-- Control Panel -->
+    <div class="control-panel">
+        <div class="control-btn" onclick="toggleTheme()" title="Toggle Theme">🌙</div>
+        <div class="control-btn" onclick="showHelp()" title="Help">❓</div>
+        <div class="control-btn" onclick="showHistory()" title="History">📜</div>
+        <div class="control-btn" onclick="clearChat()" title="Clear Chat">🗑️</div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1 class="logo">REX</h1>
+            <p class="subtitle">AI Virtual Assistant</p>
+        </div>
+
+        <!-- Chat Container -->
+        <div class="chat-container">
+            <div class="chat-output" id="chatOutput">
+                <div class="message bot-message">
+                    <strong>REX:</strong> Hello! I'm Rex, your AI assistant. I can help you with web searches, weather information, translations, definitions, and more. What would you like to know?
+                </div>
+            </div>
+            
+            <div class="typing-indicator" id="typingIndicator">
+                <span class="typing-dots">REX is thinking...</span>
+            </div>
+
+            <div class="input-area">
+                <div class="input-row">
+                    <input type="text" class="input-field" id="queryInput" placeholder="Enter your query..." onkeypress="handleKeyPress(event)">
+                    <select class="language-select" id="languageSelect">
+                        <option value="en">English</option>
+                        <option value="hi">Hindi</option>
+                        <option value="de">German</option>
+                        <option value="fr">French</option>
+                        <option value="ja">Japanese</option>
+                        <option value="es">Spanish</option>
+                    </select>
+                </div>
+                
+                <div class="button-group">
+                    <button class="btn" onclick="searchQuery()">🔍 Search</button>
+                    <button class="btn secondary" onclick="translateQuery()">🌐 Translate</button>
+                    <button class="btn success" onclick="getWeather()">🌤️ Weather</button>
+                    <button class="btn secondary" onclick="getDefinition()">📖 Define</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    </style>
+</head>
+<body>
+
+<!-- Background animations -->
+<div class="bg-animation" id="bgAnimation"></div>
+<div class="grid-overlay"></div>
+
+<!-- Control Panel -->
+<div class="control-panel">
+    <div class="control-btn" onclick="toggleTheme()" title="Toggle Theme">🌙</div>
+    <div class="control-btn" onclick="showHelp()" title="Help">❓</div>
+    <div class="control-btn" onclick="showHistory()" title="History">📜</div>
+    <div class="control-btn" onclick="clearChat()" title="Clear Chat">🗑️</div>
+</div>
+
+<!-- Main Container -->
+<div class="container">
+    <!-- Header -->
+    <div class="header">
+        <h1 class="logo">REX</h1>
+        <p class="subtitle">AI Virtual Assistant</p>
+    </div>
+
+    <!-- Chat Container -->
+    <div class="chat-container">
+        <div class="chat-output" id="chatOutput">
+            <div class="message bot-message">
+                <strong>REX:</strong> Hello! I'm Rex, your AI assistant. I can help you with web searches, weather information, translations, definitions, and more. What would you like to know?
+            </div>
+        </div>
+        <div class="typing-indicator" id="typingIndicator">
+            <span class="typing-dots">REX is thinking...</span>
+        </div>
+        <div class="input-area">
+            <div class="input-row">
+                <input type="text" class="input-field" id="queryInput" placeholder="Enter your query..." onkeypress="handleKeyPress(event)">
+                <select class="language-select" id="languageSelect">
+                    <option value="en">English</option>
+                    <option value="hi">Hindi</option>
+                    <option value="de">German</option>
+                    <option value="fr">French</option>
+                    <option value="ja">Japanese</option>
+                    <option value="es">Spanish</option>
+                </select>
+            </div>
+            <div class="button-group">
+                <button class="btn" onclick="searchQuery()">🔍 Search</button>
+                <button class="btn secondary" onclick="translateQuery()">🌐 Translate</button>
+                <button class="btn success" onclick="getWeather()">🌤️ Weather</button>
+                <button class="btn secondary" onclick="getDefinition()">📖 Define</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Help Modal -->
+<div class="modal" id="helpModal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="closeModal('helpModal')">&times;</span>
+        <h2>🤖 REX Assistant Help</h2>
+        <div class="help-content">
+            <p><strong>Welcome to REX AI Assistant!</strong></p>
+            <br>
+            <p><strong>🔍 Search:</strong> Ask me anything and I'll search the web for answers.</p>
+            <p><strong>🌤️ Weather:</strong> Type "weather in [city]" to get current weather information.</p>
+            <p><strong>🌐 Translate:</strong> Enter text and select a target language to translate.</p>
+            <p><strong>📖 Define:</strong> Type "meaning of [word]" to get definitions.</p>
+            <p><strong>🕒 Time:</strong> Type "time in [city]" to get current local time.</p>
+            <br>
+            <p><strong>Language Codes:</strong></p>
+            <p>• en = English (default)</p>
+            <p>• hi = Hindi</p>
+            <p>• de = German</p>
+            <p>• fr = French</p>
+            <p>• ja = Japanese</p>
+            <p>• es = Spanish</p>
+            <br>
+            <p><strong>Quick Commands:</strong></p>
+            <p>• "hello" - Greeting</p>
+            <p>• "thank you" - Appreciation</p>
+            <p>• "goodbye" - Farewell</p>
+        </div>
+    </div>
+</div>
+
+<!-- History Modal -->
+<div class="modal" id="historyModal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="closeModal('historyModal')">&times;</span>
+        <h2>📜 Chat History</h2>
+        <div id="historyContent">
+            <p>No history available yet.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Global variables
+    let isDarkMode = true;
+
+    document.addEventListener('DOMContentLoaded', function () {
+        createBackgroundParticles();
+        document.getElementById('queryInput').focus();
+    });
+
+    function createBackgroundParticles() {
+        const bgAnimation = document.getElementById('bgAnimation');
+        for (let i = 0; i < 50; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.animationDelay = Math.random() * 20 + 's';
+            particle.style.animationDuration = (Math.random() * 10 + 15) + 's';
+            bgAnimation.appendChild(particle);
+        }
+    }
+
+    function handleKeyPress(event) {
+        if (event.key === 'Enter') {
+            searchQuery();
+        }
+    }
+
+    function addMessage(message, isUser = false) {
+        const chatOutput = document.getElementById('chatOutput');
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${isUser ? 'user-message' : 'bot-message'}`;
+        messageDiv.innerHTML = `<strong>${isUser ? 'You' : 'REX'}:</strong> ${message}`;
+        chatOutput.appendChild(messageDiv);
+        chatOutput.scrollTop = chatOutput.scrollHeight;
+    }
+
+    function showTyping() {
+        document.getElementById('typingIndicator').style.display = 'block';
+    }
+
+    function hideTyping() {
+        document.getElementById('typingIndicator').style.display = 'none';
+    }
+
+    function typeResponse(text) {
+        return new Promise(resolve => {
+            showTyping();
+            setTimeout(() => {
+                hideTyping();
+                addMessage(text);
+                resolve();
+            }, 1000);
+        });
+    }
+
+    async function searchQuery() {
+        const query = document.getElementById('queryInput').value.trim();
+        if (!query) return;
+        addMessage(query, true);
+        document.getElementById('queryInput').value = '';
+        try {
+            const res = await fetch('http://localhost:5000/api/search', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query })
+            });
+            const data = await res.json();
+            if (data.success) {
+                await typeResponse(data.response);
+            } else {
+                await typeResponse("Error: " + (data.error || "Something went wrong"));
+            }
+        } catch (err) {
+            console.error(err);
+            await typeResponse("Connection error. Make sure the backend is running.");
+        }
+    }
+
+    async function getWeather(city) {
+        const query = document.getElementById('queryInput').value.trim();
+        if (!query) {
+            await typeResponse('Please enter a city name to get weather information! 🌤️');
+            return;
+        }
+        document.getElementById('queryInput').value = `weather in ${query}`;
+        searchQuery();
+    }
+
+    async function getDefinition(word) {
+        try {
+            const res = await fetch('http://localhost:5000/api/definition', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ word })
+            });
+            const data = await res.json();
+            return data.success ? data.response : "Error fetching definition.";
+        } catch (err) {
+            return "Error connecting to dictionary service.";
+        }
+    }
+
+    async function translateQuery() {
+        const text = document.getElementById('queryInput').value.trim();
+        const targetLang = document.getElementById('languageSelect').value;
+        if (!text) {
+            await typeResponse('Please enter text to translate! 🌐');
+            return;
+        }
+
+        addMessage(`Translate: "${text}" to ${targetLang}`, true);
+        document.getElementById('queryInput').value = '';
+
+        try {
+            const res = await fetch('http://localhost:5000/api/translate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text, target_language: targetLang })
+            });
+            const data = await res.json();
+            await typeResponse(data.success ? data.response : "Translation failed.");
+        } catch (err) {
+            await typeResponse("Translation connection error.");
+        }
+    }
+
+    async function showHistory() {
+        try {
+            const res = await fetch('http://localhost:5000/api/history');
+            const data = await res.json();
+            const historyContent = document.getElementById('historyContent');
+
+            if (data.success && data.history.length > 0) {
+                historyContent.innerHTML = data.history.map((item, index) => `
+                    <div style="margin-bottom: 15px; padding: 10px; border-left: 3px solid #00ffff; background: rgba(0,255,255,0.1);">
+                        <strong>Query ${index + 1}:</strong> ${item.query}<br>
+                        <small style="color: #888;">${new Date(item.timestamp).toLocaleString()}</small>
+                    </div>
+                `).join('');
+            } else {
+                historyContent.innerHTML = '<p>No history available yet.</p>';
+            }
+
+            document.getElementById('historyModal').style.display = 'block';
+        } catch (err) {
+            document.getElementById('historyContent').innerHTML = '<p>Error loading history.</p>';
+        }
+    }
+
+    function clearChat() {
+        fetch('http://localhost:5000/api/clear_history', {
+            method: 'POST'
+        }).then(() => {
+            const chatOutput = document.getElementById('chatOutput');
+            chatOutput.innerHTML = `
+                <div class="message bot-message">
+                    <strong>REX:</strong> Chat cleared! How can I help you today? 🤖
+                </div>
+            `;
+        }).catch(() => {
+            alert("Failed to clear chat history.");
+        });
+    }
+
+    function toggleTheme() {
+        document.body.classList.toggle('dark-mode');
+    }
+
+    function showHelp() {
+        document.getElementById('helpModal').style.display = 'block';
+    }
+
+    function closeModal(modalId) {
+        document.getElementById(modalId).style.display = 'none';
+    }
+
+    window.onclick = function(event) {
+        const modals = document.querySelectorAll('.modal');
+        modals.forEach(modal => {
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+    }
+</script>
+</body>
+</html>
